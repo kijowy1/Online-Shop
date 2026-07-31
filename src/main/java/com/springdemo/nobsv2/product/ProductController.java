@@ -1,9 +1,12 @@
 package com.springdemo.nobsv2.product;
 
+import com.springdemo.nobsv2.exceptions.ProductNotFoundException;
+import com.springdemo.nobsv2.product.model.ErrorResponse;
 import com.springdemo.nobsv2.product.model.Product;
 import com.springdemo.nobsv2.product.model.ProductDTO;
 import com.springdemo.nobsv2.product.model.UpdateProductCommand;
 import com.springdemo.nobsv2.product.services.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -11,7 +14,7 @@ import java.util.List;
 
 @RestController
 public class ProductController {
-
+    //Tutaj jest wykonywanie odpowiednio create delete etc
     private final CreateProductService createProductService;
 
     private final GetAllProductService getAllProductService;
@@ -34,7 +37,7 @@ public class ProductController {
         this.getProductService = getProductService;
     }
 
-
+    //tutaj pokazuje link pod jakim mozna cos uzyskac strona.com/product
     @PostMapping("/product")
     public ResponseEntity<ProductDTO> createProduct(@RequestBody Product product){
         return createProductService.execute(product);
@@ -49,7 +52,7 @@ public class ProductController {
     public ResponseEntity<ProductDTO> getProductById(@PathVariable Integer id){
         return getProductService.execute(id);
     }
-
+    //tutaj jest update product, wykonujemy updateProductService z services w linku ponizej
     @PutMapping("/product/{id}")
     public ResponseEntity<ProductDTO> updateProduct(@PathVariable Integer id, @RequestBody Product product){
         return updateProductService.execute(new UpdateProductCommand(product, id));

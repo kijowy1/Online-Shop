@@ -1,6 +1,7 @@
 package com.springdemo.nobsv2.product.services;
 
 import com.springdemo.nobsv2.Query;
+import com.springdemo.nobsv2.exceptions.ProductNotFoundException;
 import com.springdemo.nobsv2.product.ProductRepository;
 import com.springdemo.nobsv2.product.model.Product;
 import com.springdemo.nobsv2.product.model.ProductDTO;
@@ -11,7 +12,7 @@ import java.util.Optional;
 
 @Service
 public class GetProductService implements Query<Integer, ProductDTO> {
-
+    //tu odpowiednio dziala dostawanie produktu, jak ma dzialac funckja GET
     private final ProductRepository productRepository;
 
     public GetProductService(ProductRepository productRepository) {
@@ -23,10 +24,10 @@ public class GetProductService implements Query<Integer, ProductDTO> {
         //optional, if u can find it
         Optional<Product> productOptional = productRepository.findById(input);
         if(productOptional.isPresent()){
+            // jezeli takie id jest, zwracamy produkt
             return ResponseEntity.ok(new ProductDTO(productOptional.get()));
         }
-        //w przyszlosci bedzie tu wstawiona ladna wiadomsoc w przypadku braku produktu o danym id
-        return null;
+        throw new ProductNotFoundException();
 
 
     }

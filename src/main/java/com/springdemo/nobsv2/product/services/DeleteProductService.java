@@ -1,6 +1,7 @@
 package com.springdemo.nobsv2.product.services;
 
 import com.springdemo.nobsv2.Command;
+import com.springdemo.nobsv2.exceptions.ProductNotFoundException;
 import com.springdemo.nobsv2.product.ProductRepository;
 import com.springdemo.nobsv2.product.model.Product;
 import org.springframework.http.HttpStatus;
@@ -11,7 +12,7 @@ import java.util.Optional;
 
 @Service
 public class DeleteProductService implements Command<Integer,Void> {
-
+    //tu odpowiednio dziala usuwanie produktu, jak ma dzialac funckja DELETE
     private final ProductRepository productRepository;
 
     public DeleteProductService(ProductRepository productRepository) {
@@ -27,6 +28,6 @@ public class DeleteProductService implements Command<Integer,Void> {
             return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         }
         //later
-        return null;
+        throw new ProductNotFoundException();
     }
 }
