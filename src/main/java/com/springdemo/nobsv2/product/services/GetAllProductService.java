@@ -12,7 +12,7 @@ import java.util.List;
 
 @Service
 public class GetAllProductService implements Query<Void,List<ProductDTO>> {
-
+    //tu odpowiednio dziala wyrzucanie kazdego produktu, jak ma dzialac funckja getALLProduct
     private final ProductRepository productRepository;
 
     public GetAllProductService(ProductRepository productRepository) {
@@ -23,7 +23,10 @@ public class GetAllProductService implements Query<Void,List<ProductDTO>> {
     public ResponseEntity<List<ProductDTO>> execute(Void input) {
         List<Product> products = productRepository.findAll();
         List<ProductDTO> productDTOS = products.stream().map(ProductDTO::new).toList();
+
+        //nie ma sensu dawac exception gdy nie ma produktow, wyrzucamy pusta liste
         return ResponseEntity.status(HttpStatus.OK).body(productDTOS);
+
 
     }
 }
