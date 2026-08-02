@@ -1,6 +1,5 @@
 package com.springdemo.nobsv2.product.model;
 
-import com.springdemo.nobsv2.product.ProductRepository;
 import lombok.Data;
 
 @Data

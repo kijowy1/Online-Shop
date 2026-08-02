@@ -2,7 +2,7 @@ package com.springdemo.nobsv2.product.services;
 
 import com.springdemo.nobsv2.Command;
 import com.springdemo.nobsv2.exceptions.ProductNotFoundException;
-import com.springdemo.nobsv2.product.ProductRepository;
+import com.springdemo.nobsv2.product.validators.ProductRepository;
 import com.springdemo.nobsv2.product.model.Product;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

@@ -2,17 +2,17 @@ package com.springdemo.nobsv2.product.services;
 
 import com.springdemo.nobsv2.Query;
 import com.springdemo.nobsv2.exceptions.ProductNotFoundException;
-import com.springdemo.nobsv2.product.ProductRepository;
+import com.springdemo.nobsv2.product.validators.ProductRepository;
 import com.springdemo.nobsv2.product.model.Product;
 import com.springdemo.nobsv2.product.model.ProductDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-
 import java.util.Optional;
+
+//Tutaj odpowiednio dziala wypisywanie pojedycznego produktu, opisana funckja GET.
 
 @Service
 public class GetProductService implements Query<Integer, ProductDTO> {
-    //tu odpowiednio dziala dostawanie produktu, jak ma dzialac funckja GET
     private final ProductRepository productRepository;
 
     public GetProductService(ProductRepository productRepository) {

@@ -12,9 +12,13 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+//To sa endpointy
+//tutaj pokazuje link pod jakim mozna cos uzyskac strona.com/product
+//Tutaj jest wykonywanie odpowiednio create delete etc
+//tutaj tez jest dependecy injection
 @RestController
 public class ProductController {
-    //Tutaj jest wykonywanie odpowiednio create delete etc
+
     private final CreateProductService createProductService;
 
     private final GetAllProductService getAllProductService;
@@ -25,19 +29,21 @@ public class ProductController {
 
     private final GetProductService getProductService;
 
+    private final SearchProductService searchProductService;
+
     public ProductController(CreateProductService createProductService,
                              GetAllProductService getAllProductService,
                              UpdateProductService updateProductService,
                              DeleteProductService deleteProductService,
-                             GetProductService getProductService) {
+                             GetProductService getProductService, SearchProductService searchProductService) {
         this.createProductService = createProductService;
         this.getAllProductService = getAllProductService;
         this.updateProductService = updateProductService;
         this.deleteProductService = deleteProductService;
         this.getProductService = getProductService;
+        this.searchProductService = searchProductService;
     }
 
-    //tutaj pokazuje link pod jakim mozna cos uzyskac strona.com/product
     @PostMapping("/product")
     public ResponseEntity<ProductDTO> createProduct(@RequestBody Product product){
         return createProductService.execute(product);
@@ -51,6 +57,10 @@ public class ProductController {
     @GetMapping("/product/{id}")
     public ResponseEntity<ProductDTO> getProductById(@PathVariable Integer id){
         return getProductService.execute(id);
+    }
+    @GetMapping("product/search")
+    public ResponseEntity<List<ProductDTO>> searchProductByName(@RequestParam String name){
+        return searchProductService.execute(name);
     }
     //tutaj jest update product, wykonujemy updateProductService z services w linku ponizej
     @PutMapping("/product/{id}")

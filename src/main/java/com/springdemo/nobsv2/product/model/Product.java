@@ -19,7 +19,8 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY) // generuje id
     @Column(name = "id")
     private Integer Id;
-    // tutaj mamy bledy/wymagania do dodawnia produktow
+    // tutaj mamy wymagania co musi spelnic ADD aby dodac produkt produktow
+
     @NotNull(message = "Name is Required")
     @Column(name = "name")
     private String name;
