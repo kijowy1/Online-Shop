@@ -8,6 +8,8 @@ class Nobsv2ApplicationTests {
 
     @Test
     void contextLoads() {
+        //test that should always pass
+        
     }
 
 }

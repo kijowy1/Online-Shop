@@ -1,14 +1,13 @@
 package com.springdemo.nobsv2.product;
 
-import com.springdemo.nobsv2.exceptions.ProductNotFoundException;
-import com.springdemo.nobsv2.product.model.ErrorResponse;
 import com.springdemo.nobsv2.product.model.Product;
 import com.springdemo.nobsv2.product.model.ProductDTO;
 import com.springdemo.nobsv2.product.model.UpdateProductCommand;
 import com.springdemo.nobsv2.product.services.*;
-import org.springframework.http.HttpStatus;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -19,6 +18,8 @@ import java.util.List;
 @RestController
 public class ProductController {
 
+    //TODO
+    // Update services to find by "type" electronics etc
     private final CreateProductService createProductService;
 
     private final GetAllProductService getAllProductService;
@@ -49,9 +50,9 @@ public class ProductController {
         return createProductService.execute(product);
     }
 
-    @GetMapping("/products")
-    public ResponseEntity<List<ProductDTO>> getAllProduct(){
-        return getAllProductService.execute(null);
+    @GetMapping("/products") // /products?size=15&page=3
+        public ResponseEntity<Page<ProductDTO>> getAllProduct(Pageable pageable){
+        return getAllProductService.execute(pageable);
     }
 
     @GetMapping("/product/{id}")
@@ -59,8 +60,8 @@ public class ProductController {
         return getProductService.execute(id);
     }
     @GetMapping("product/search")
-    public ResponseEntity<List<ProductDTO>> searchProductByName(@RequestParam String name){
-        return searchProductService.execute(name);
+    public ResponseEntity<List<ProductDTO>> searchProductByName(@RequestParam String keyword){
+        return searchProductService.execute(keyword);
     }
     //tutaj jest update product, wykonujemy updateProductService z services w linku ponizej
     @PutMapping("/product/{id}")
@@ -72,4 +73,6 @@ public class ProductController {
     public ResponseEntity<Void> deleteProduct(@PathVariable Integer id){
         return  deleteProductService.execute(id);
     }
+
+
 }

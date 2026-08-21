@@ -5,6 +5,8 @@ import com.springdemo.nobsv2.product.validators.ProductRepository;
 import com.springdemo.nobsv2.product.model.Product;
 import com.springdemo.nobsv2.product.model.ProductDTO;
 import com.springdemo.nobsv2.product.validators.ProductValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class CreateProductService implements Command<Product,ProductDTO> {
     private final ProductRepository productRepository;
+    private static final Logger logger = LoggerFactory.getLogger(CreateProductService.class);
 
     public CreateProductService(ProductRepository productRepository) {
         this.productRepository = productRepository;
@@ -24,7 +27,7 @@ public class CreateProductService implements Command<Product,ProductDTO> {
 
         ProductValidator.execute(product);
         Product savedProduct = productRepository.save(product);
-
+        logger.info("Succesfully created product: " + product.getName() + " with id: " + product.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(new ProductDTO(savedProduct));
 
     }

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Sklep - Lista Produktów</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9; }
+        .product-card {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 14px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            max-width: 500px;
+        }
+        summary {
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            color: #2c3e50;
+            user-select: none;
+        }
+        summary:hover { color: #007bff; }
+        .details-content {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #eee;
+            color: #555;
+        }
+        .price { font-weight: bold; color: #28a745; margin-bottom: 6px; }
+        button { padding: 8px 16px; cursor: pointer; border-radius: 4px; border: 1px solid #ccc; }
+
+        .toolbar { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;}
+        button.primary { background-color: #007bff; color: white; border-color: #007bff; }
+        button.primary:hover { background-color: #0069d9; }
+
+        .search-input {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            flex-grow: 1;
+            max-width: 250px;
+        }
+
+        /* Style dla paginacji */
+        .pagination {
+            display: flex;
+            gap: 5px;
+            margin-top: 20px;
+            max-width: 500px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .pagination button {
+            background: white;
+            color: #007bff;
+            border: 1px solid #007bff;
+            padding: 6px 12px;
+            font-weight: bold;
+        }
+        .pagination button:hover { background: #e9f2ff; }
+        .pagination button.active {
+            background: #007bff;
+            color: white;
+            cursor: default;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .modal-box h2 { margin-top: 0; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 4px; font-weight: bold; color: #2c3e50; }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+        .error-msg { color: red; margin-top: 8px; font-size: 0.9em; display: none; }
+
+        .card-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+        .card-header span { flex: 1; }
+        
+        .actions-group {
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .btn-edit {
+            background: #f39c12;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            padding: 4px 8px;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            line-height: 1;
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .btn-edit:hover { background-color: #09a317; }
+
+        .btn-delete {
+            background: darkred;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            padding: 4px 8px;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            line-height: 1;
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .btn-delete:hover { background-color: #ff4c4c; }
+    </style>
+</head>
+<body>
+
+<h1>Moje Produkty</h1>
+
+<div class="toolbar">
+    <!-- Przycisk odświeżania wraca na pierwszą stronę -->
+    <button onclick="pobierzProdukty(0)">Odśwież listę</button>
+    <button class="primary" onclick="otworzModalDodawania()">+ Dodaj produkt</button>
+    <input type="text" id="input-szukaj" class="search-input" placeholder="Szukaj po nazwie lub opisie..." oninput="naWpisanieTekstu()">
+</div>
+
+<div id="lista-produktow" style="margin-top: 20px;"></div>
+
+<!-- Kontener na przyciski paginacji -->
+<div id="paginacja" class="pagination"></div>
+
+<!-- Modal do tworzenia / edycji produktu -->
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal-box">
+        <h2 id="modal-tytul">Nowy produkt</h2>
+        <input type="hidden" id="input-id">
+        <div class="form-group">
+            <label for="input-nazwa">Nazwa</label>
+            <input type="text" id="input-nazwa" placeholder="np. Kubek ceramiczny">
+        </div>
+        <div class="form-group">
+            <label for="input-cena">Cena (zł)</label>
+            <input type="number" id="input-cena" step="0.01" min="0" placeholder="np. 29.99">
+        </div>
+        <div class="form-group">
+            <label for="input-opis">Opis</label>
+            <textarea id="input-opis" rows="3" placeholder="Krótki opis produktu (min 20 znaków)"></textarea>
+            <small id="licznik-opis" style="color: #666; display: block; margin-top: 4px;">0 / 20 znaków</small>
+        </div>
+        <div class="error-msg" id="modal-error"></div>
+        <div class="modal-actions">
+            <button onclick="zamknijModal()">Anuluj</button>
+            <button class="primary" onclick="zapiszProdukt()">Zapisz</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://localhost:8080';
+    const ROZMIAR_STRONY = 20;
+    let aktualnaStrona = 0;
+    let trybWyszukiwania = false;
+    let timeoutWyszukiwania = null;
+
+    // Przechowujemy pobrane produkty lokalnie w mapie/tablicy, aby łatwo wypełnić formularz edycji
+    let aktualneProdukty = [];
+
+    // Renderowanie listy
+    function wyswietlProdukty(dane) {
+        const kontener = document.getElementById('lista-produktow');
+        kontener.innerHTML = '';
+
+        // Obsługa obiektu Page ze Springa (dane.content) lub płaskiej listy
+        const lista = Array.isArray(dane) ? dane : (dane.content || []);
+        aktualneProdukty = lista;
+
+        if (lista.length === 0) {
+            kontener.innerHTML = '<p>Brak produktów do wyświetlenia.</p>';
+            return;
+        }
+
+        lista.forEach(produkt => {
+            const el = document.createElement('div');
+            el.className = 'product-card';
+
+            const nazwa = produkt.name || 'Produkt bez nazwy';
+            const cena = produkt.price !== undefined ? produkt.price : 0;
+            const opis = produkt.description || 'Brak opisu dla tego produktu.';
+            const id = produkt.id;
+
+            el.innerHTML = `
+                <details>
+                    <summary class="card-header">
+                        <span class="product-name">${nazwa}</span>
+                        <div class="actions-group">
+                            <button class="btn-edit" title="Edytuj produkt" onclick="otworzModalEdycji(event, ${id})">✏️</button>
+                            <button class="btn-delete" title="Usuń produkt" onclick="usunProdukt(event, ${id})">🗑️</button>
+                        </div>
+                    </summary>
+                    <div class="details-content">
+                        <div class="price">Cena: ${cena} zł</div>
+                        <div class="description"><strong>Opis:</strong> ${opis}</div>
+                    </div>
+                </details>
+            `;
+            kontener.appendChild(el);
+        });
+    }
+
+    // Generowanie przycisków 1, 2, 3...
+    function renderujPaginacje(dane) {
+        const paginacjaEl = document.getElementById('paginacja');
+        paginacjaEl.innerHTML = '';
+
+        if (!dane || dane.totalPages === undefined || dane.totalPages <= 1) {
+            return;
+        }
+
+        const totalPages = dane.totalPages;
+        const currentPage = dane.number;
+
+        for (let i = 0; i < totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.textContent = i + 1;
+
+            if (i === currentPage) {
+                btn.classList.add('active');
+            } else {
+                btn.onclick = () => {
+                    if (trybWyszukiwania) {
+                        wykonajWyszukiwanie(i);
+                    } else {
+                        pobierzProdukty(i);
+                    }
+                };
+            }
+
+            paginacjaEl.appendChild(btn);
+        }
+    }
+
+    // Pobieranie domyślnej listy
+    function pobierzProdukty(strona = 0) {
+        aktualnaStrona = strona;
+        trybWyszukiwania = false;
+
+        fetch(`${API_URL}/products?page=${aktualnaStrona}&size=${ROZMIAR_STRONY}`)
+            .then(odpowiedz => {
+                if (!odpowiedz.ok) throw new Error('Błąd serwera: ' + odpowiedz.status);
+                return odpowiedz.json();
+            })
+            .then(dane => {
+                document.getElementById('input-szukaj').value = '';
+                wyswietlProdukty(dane);
+                renderujPaginacje(dane);
+            })
+            .catch(blad => {
+                console.error('Błąd:', blad);
+                document.getElementById('lista-produktow').innerHTML = '<p style="color: red;">Nie udało się pobrać produktów.</p>';
+            });
+    }
+
+    // Obsługa wpisywania tekstu
+    function naWpisanieTekstu() {
+        clearTimeout(timeoutWyszukiwania);
+        timeoutWyszukiwania = setTimeout(() => {
+            wykonajWyszukiwanie(0);
+        }, 500);
+    }
+
+    // Wyszukiwanie
+    function wykonajWyszukiwanie(strona) {
+        const szukanaFraza = document.getElementById('input-szukaj').value.trim();
+
+        if (szukanaFraza === '') {
+            pobierzProdukty(0);
+            return;
+        }
+
+        aktualnaStrona = strona;
+        trybWyszukiwania = true;
+
+        const searchUrl = `${API_URL}/products/search?keyword=${encodeURIComponent(szukanaFraza)}&page=${aktualnaStrona}&size=${ROZMIAR_STRONY}`;
+
+        fetch(searchUrl)
+            .then(odpowiedz => {
+                if (!odpowiedz.ok) throw new Error('Błąd wyszukiwania: ' + odpowiedz.status);
+                return odpowiedz.json();
+            })
+            .then(dane => {
+                wyswietlProdukty(dane);
+                renderujPaginacje(dane);
+            })
+            .catch(blad => {
+                console.error('Błąd:', blad);
+                document.getElementById('lista-produktow').innerHTML = '<p style="color: red;">Wystąpił błąd podczas wyszukiwania.</p>';
+            });
+    }
+
+    // Usuwanie produktu
+    function usunProdukt(event, id) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (!confirm('Czy na pewno chcesz usunąć ten produkt?')) return;
+
+        fetch(`${API_URL}/product/${id}`, {
+            method: 'DELETE'
+        })
+            .then(odpowiedz => {
+                if (!odpowiedz.ok) throw new Error('Błąd serwera: ' + odpowiedz.status);
+
+                if (trybWyszukiwania) {
+                    wykonajWyszukiwanie(aktualnaStrona);
+                } else {
+                    pobierzProdukty(aktualnaStrona);
+                }
+            })
+            .catch(blad => alert('Nie udało się usunąć produktu.'));
+    }
+
+    // Otwarcie modalu w trybie DODAWANIA
+    function otworzModalDodawania() {
+        document.getElementById('modal-tytul').textContent = 'Nowy produkt';
+        document.getElementById('input-id').value = '';
+        document.getElementById('modal-error').style.display = 'none';
+        document.getElementById('input-nazwa').value = '';
+        document.getElementById('input-cena').value = '';
+        document.getElementById('input-opis').value = '';
+        document.getElementById('licznik-opis').textContent = '0 / 20 znaków';
+        document.getElementById('modal-overlay').classList.add('active');
+    }
+
+    // Otwarcie modalu w trybie EDYCJI
+    function otworzModalEdycji(event, id) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const produkt = aktualneProdukty.find(p => p.id === id);
+        if (!produkt) return;
+
+        document.getElementById('modal-tytul').textContent = 'Edytuj produkt';
+        document.getElementById('input-id').value = produkt.id;
+        document.getElementById('input-nazwa').value = produkt.name || '';
+        document.getElementById('input-cena').value = produkt.price !== undefined ? produkt.price : '';
+        document.getElementById('input-opis').value = produkt.description || '';
+        
+        const opisLength = (produkt.description || '').length;
+        document.getElementById('licznik-opis').textContent = `${opisLength} / 20 znaków`;
+        document.getElementById('modal-error').style.display = 'none';
+
+        document.getElementById('modal-overlay').classList.add('active');
+    }
+
+    function zamknijModal() {
+        document.getElementById('modal-overlay').classList.remove('active');
+    }
+
+    // Zapisywanie (obsługuje POST dla nowych oraz PUT dla edytowanych)
+    function zapiszProdukt() {
+        const id = document.getElementById('input-id').value;
+        const nazwa = document.getElementById('input-nazwa').value.trim();
+        const cenaRaw = document.getElementById('input-cena').value;
+        const opis = document.getElementById('input-opis').value.trim();
+        const errorEl = document.getElementById('modal-error');
+
+        if (!nazwa) { errorEl.textContent = 'Nazwa jest wymagana'; errorEl.style.display = 'block'; return; }
+        else if (!cenaRaw) { errorEl.textContent = 'Cena jest wymagana'; errorEl.style.display = 'block'; return; }
+        else if (opis.length < 20) { errorEl.textContent = 'Opis minimum 20 znaków'; errorEl.style.display = 'block'; return; }
+
+        errorEl.style.display = 'none';
+
+        const produktPayload = { name: nazwa, price: parseFloat(cenaRaw), description: opis };
+        const jestEdycja = Boolean(id);
+        const url = jestEdycja ? `${API_URL}/product/${id}` : `${API_URL}/product`;
+        const metoda = jestEdycja ? 'PUT' : 'POST';
+
+        fetch(url, {
+            method: metoda,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(produktPayload)
+        })
+            .then(odpowiedz => {
+                if (!odpowiedz.ok) throw new Error('Błąd serwera: ' + odpowiedz.status);
+                zamknijModal();
+                // Po edycji odświeżamy bieżącą stronę, po dodaniu wracamy na stronę 0
+                if (jestEdycja) {
+                    if (trybWyszukiwania) wykonajWyszukiwanie(aktualnaStrona);
+                    else pobierzProdukty(aktualnaStrona);
+                } else {
+                    pobierzProdukty(0);
+                }
+            })
+            .catch(() => {
+                errorEl.textContent = 'Nie udało się zapisać produktu.';
+                errorEl.style.display = 'block';
+            });
+    }
+
+    // Inicjalizacja
+    pobierzProdukty(0);
+
+    const textareaOpis = document.getElementById('input-opis');
+    const licznik = document.getElementById('licznik-opis');
+    textareaOpis.addEventListener('input', () => {
+        licznik.textContent = `${textareaOpis.value.length} / 20 znaków`;
+    });
+</script>
+</body>
+</html>

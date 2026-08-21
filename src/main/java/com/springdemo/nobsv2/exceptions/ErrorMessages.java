@@ -1,6 +1,7 @@
 package com.springdemo.nobsv2.exceptions;
 
 public enum ErrorMessages {
+    SOMETHING_WENT_WRONG("Oops,something went wrong"),
     PRODUCT_NOT_FOUND("Product Not Found"),
     NAME_REQUIRED("name is required"),
     DESCRIPTION_TOO_SHORT("description must be at least 20 characters"),
