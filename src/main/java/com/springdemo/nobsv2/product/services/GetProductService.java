@@ -5,6 +5,8 @@ import com.springdemo.nobsv2.exceptions.ProductNotFoundException;
 import com.springdemo.nobsv2.product.validators.ProductRepository;
 import com.springdemo.nobsv2.product.model.Product;
 import com.springdemo.nobsv2.product.model.ProductDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import java.util.Optional;
@@ -18,10 +20,12 @@ public class GetProductService implements Query<Integer, ProductDTO> {
     public GetProductService(ProductRepository productRepository) {
         this.productRepository = productRepository;
     }
+    private static final Logger logger = LoggerFactory.getLogger(GetProductService.class);
 
     @Override
     public ResponseEntity<ProductDTO> execute(Integer input) {
         //optional, if u can find it
+        logger.info("Executing " + getClass() + " input");
         Optional<Product> productOptional = productRepository.findById(input);
         if(productOptional.isPresent()){
             // jezeli takie id jest, zwracamy produkt
