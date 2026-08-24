@@ -46,6 +46,10 @@ public class UpdateProductService implements Command<UpdateProductCommand, Produ
                     productChanges.append("Price: " + oldProduct.getPrice() +
                             " -> " + newProduct.getPrice() + "\n");
                 }
+                if(!newProduct.getQuantity().equals(oldProduct.getQuantity())){
+                    productChanges.append("Price: " + oldProduct.getQuantity() +
+                            " -> " + newProduct.getQuantity() + "\n");
+                }
                 newProduct.setId(command.getId());
                 productRepository.save(newProduct);
                 logger.info("Succesfully updated - " + productChanges);
@@ -55,4 +59,6 @@ public class UpdateProductService implements Command<UpdateProductCommand, Produ
         throw new ProductNotFoundException();
 
     }
+    // TODO:
+    //  Logger function
 }

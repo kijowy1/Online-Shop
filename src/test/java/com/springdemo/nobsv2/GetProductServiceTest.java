@@ -60,4 +60,10 @@ public class GetProductServiceTest {
         assertThrows(ProductNotFoundException.class, () -> getProductService.execute(1));
         verify(productRepository,times(1)).findById(1);
     }
+    @Test
+    public void given_null_instead_of_id_when_get_product_service_throw_illegal_argument_exception(){
+        Integer invalidId = -1;
+        assertThrows(IllegalArgumentException.class, () -> getProductService.execute(invalidId));
+        verify(productRepository, never()).findById(any());
+    }
 }

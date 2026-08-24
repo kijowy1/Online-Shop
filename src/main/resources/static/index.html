@@ -28,7 +28,8 @@
             border-top: 1px dashed #eee;
             color: #555;
         }
-        .price { font-weight: bold; color: #28a745; margin-bottom: 6px; }
+        .price { font-weight: bold; color: #28a745; margin-bottom: 4px; }
+        .quantity { font-weight: bold; color: #17a2b8; margin-bottom: 6px; }
         button { padding: 8px 16px; cursor: pointer; border-radius: 4px; border: 1px solid #ccc; }
 
         .toolbar { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;}
@@ -43,7 +44,6 @@
             max-width: 250px;
         }
 
-        /* Style dla paginacji */
         .pagination {
             display: flex;
             gap: 5px;
@@ -66,7 +66,6 @@
             cursor: default;
         }
 
-        /* Modal */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -101,7 +100,7 @@
 
         .card-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
         .card-header span { flex: 1; }
-        
+
         .actions-group {
             display: inline-flex;
             gap: 6px;
@@ -109,7 +108,7 @@
         }
 
         .btn-edit {
-            background: #f39c12;
+            background: #00af1d;
             border: none;
             cursor: pointer;
             font-size: 1.1em;
@@ -124,7 +123,7 @@
             justify-content: center;
             color: white;
         }
-        .btn-edit:hover { background-color: #09a317; }
+        .btn-edit:hover { background-color: #055a0b; }
 
         .btn-delete {
             background: darkred;
@@ -150,18 +149,14 @@
 <h1>Moje Produkty</h1>
 
 <div class="toolbar">
-    <!-- Przycisk odświeżania wraca na pierwszą stronę -->
     <button onclick="pobierzProdukty(0)">Odśwież listę</button>
     <button class="primary" onclick="otworzModalDodawania()">+ Dodaj produkt</button>
     <input type="text" id="input-szukaj" class="search-input" placeholder="Szukaj po nazwie lub opisie..." oninput="naWpisanieTekstu()">
 </div>
 
 <div id="lista-produktow" style="margin-top: 20px;"></div>
-
-<!-- Kontener na przyciski paginacji -->
 <div id="paginacja" class="pagination"></div>
 
-<!-- Modal do tworzenia / edycji produktu -->
 <div class="modal-overlay" id="modal-overlay">
     <div class="modal-box">
         <h2 id="modal-tytul">Nowy produkt</h2>
@@ -173,6 +168,10 @@
         <div class="form-group">
             <label for="input-cena">Cena (zł)</label>
             <input type="number" id="input-cena" step="0.01" min="0" placeholder="np. 29.99">
+        </div>
+        <div class="form-group">
+            <label for="input-quantity">Ilość sztuk na magazynie</label>
+            <input type="number" id="input-quantity" step="1" min="0" placeholder="np. 15">
         </div>
         <div class="form-group">
             <label for="input-opis">Opis</label>
@@ -193,16 +192,12 @@
     let aktualnaStrona = 0;
     let trybWyszukiwania = false;
     let timeoutWyszukiwania = null;
-
-    // Przechowujemy pobrane produkty lokalnie w mapie/tablicy, aby łatwo wypełnić formularz edycji
     let aktualneProdukty = [];
 
-    // Renderowanie listy
     function wyswietlProdukty(dane) {
         const kontener = document.getElementById('lista-produktow');
         kontener.innerHTML = '';
 
-        // Obsługa obiektu Page ze Springa (dane.content) lub płaskiej listy
         const lista = Array.isArray(dane) ? dane : (dane.content || []);
         aktualneProdukty = lista;
 
@@ -217,6 +212,7 @@
 
             const nazwa = produkt.name || 'Produkt bez nazwy';
             const cena = produkt.price !== undefined ? produkt.price : 0;
+            const quantity = produkt.quantity !== undefined ? produkt.quantity : 0;
             const opis = produkt.description || 'Brak opisu dla tego produktu.';
             const id = produkt.id;
 
@@ -231,6 +227,7 @@
                     </summary>
                     <div class="details-content">
                         <div class="price">Cena: ${cena} zł</div>
+                        <div class="quantity">Dostępna ilość: ${quantity} szt.</div>
                         <div class="description"><strong>Opis:</strong> ${opis}</div>
                     </div>
                 </details>
@@ -239,14 +236,11 @@
         });
     }
 
-    // Generowanie przycisków 1, 2, 3...
     function renderujPaginacje(dane) {
         const paginacjaEl = document.getElementById('paginacja');
         paginacjaEl.innerHTML = '';
 
-        if (!dane || dane.totalPages === undefined || dane.totalPages <= 1) {
-            return;
-        }
+        if (!dane || dane.totalPages === undefined || dane.totalPages <= 1) return;
 
         const totalPages = dane.totalPages;
         const currentPage = dane.number;
@@ -259,11 +253,8 @@
                 btn.classList.add('active');
             } else {
                 btn.onclick = () => {
-                    if (trybWyszukiwania) {
-                        wykonajWyszukiwanie(i);
-                    } else {
-                        pobierzProdukty(i);
-                    }
+                    if (trybWyszukiwania) wykonajWyszukiwanie(i);
+                    else pobierzProdukty(i);
                 };
             }
 
@@ -271,7 +262,6 @@
         }
     }
 
-    // Pobieranie domyślnej listy
     function pobierzProdukty(strona = 0) {
         aktualnaStrona = strona;
         trybWyszukiwania = false;
@@ -292,7 +282,6 @@
             });
     }
 
-    // Obsługa wpisywania tekstu
     function naWpisanieTekstu() {
         clearTimeout(timeoutWyszukiwania);
         timeoutWyszukiwania = setTimeout(() => {
@@ -300,7 +289,6 @@
         }, 500);
     }
 
-    // Wyszukiwanie
     function wykonajWyszukiwanie(strona) {
         const szukanaFraza = document.getElementById('input-szukaj').value.trim();
 
@@ -329,41 +317,34 @@
             });
     }
 
-    // Usuwanie produktu
     function usunProdukt(event, id) {
         event.preventDefault();
         event.stopPropagation();
 
         if (!confirm('Czy na pewno chcesz usunąć ten produkt?')) return;
 
-        fetch(`${API_URL}/product/${id}`, {
-            method: 'DELETE'
-        })
+        fetch(`${API_URL}/product/${id}`, { method: 'DELETE' })
             .then(odpowiedz => {
                 if (!odpowiedz.ok) throw new Error('Błąd serwera: ' + odpowiedz.status);
 
-                if (trybWyszukiwania) {
-                    wykonajWyszukiwanie(aktualnaStrona);
-                } else {
-                    pobierzProdukty(aktualnaStrona);
-                }
+                if (trybWyszukiwania) wykonajWyszukiwanie(aktualnaStrona);
+                else pobierzProdukty(aktualnaStrona);
             })
             .catch(blad => alert('Nie udało się usunąć produktu.'));
     }
 
-    // Otwarcie modalu w trybie DODAWANIA
     function otworzModalDodawania() {
         document.getElementById('modal-tytul').textContent = 'Nowy produkt';
         document.getElementById('input-id').value = '';
         document.getElementById('modal-error').style.display = 'none';
         document.getElementById('input-nazwa').value = '';
         document.getElementById('input-cena').value = '';
+        document.getElementById('input-quantity').value = '0';
         document.getElementById('input-opis').value = '';
         document.getElementById('licznik-opis').textContent = '0 / 20 znaków';
         document.getElementById('modal-overlay').classList.add('active');
     }
 
-    // Otwarcie modalu w trybie EDYCJI
     function otworzModalEdycji(event, id) {
         event.preventDefault();
         event.stopPropagation();
@@ -375,8 +356,9 @@
         document.getElementById('input-id').value = produkt.id;
         document.getElementById('input-nazwa').value = produkt.name || '';
         document.getElementById('input-cena').value = produkt.price !== undefined ? produkt.price : '';
+        document.getElementById('input-quantity').value = produkt.quantity !== undefined ? produkt.quantity : 0;
         document.getElementById('input-opis').value = produkt.description || '';
-        
+
         const opisLength = (produkt.description || '').length;
         document.getElementById('licznik-opis').textContent = `${opisLength} / 20 znaków`;
         document.getElementById('modal-error').style.display = 'none';
@@ -388,21 +370,28 @@
         document.getElementById('modal-overlay').classList.remove('active');
     }
 
-    // Zapisywanie (obsługuje POST dla nowych oraz PUT dla edytowanych)
     function zapiszProdukt() {
         const id = document.getElementById('input-id').value;
         const nazwa = document.getElementById('input-nazwa').value.trim();
         const cenaRaw = document.getElementById('input-cena').value;
+        const quantityRaw = document.getElementById('input-quantity').value;
         const opis = document.getElementById('input-opis').value.trim();
         const errorEl = document.getElementById('modal-error');
 
         if (!nazwa) { errorEl.textContent = 'Nazwa jest wymagana'; errorEl.style.display = 'block'; return; }
         else if (!cenaRaw) { errorEl.textContent = 'Cena jest wymagana'; errorEl.style.display = 'block'; return; }
+        else if (quantityRaw === '' || parseInt(quantityRaw) < 0) { errorEl.textContent = 'Ilość musi wynosić 0 lub więcej'; errorEl.style.display = 'block'; return; }
         else if (opis.length < 20) { errorEl.textContent = 'Opis minimum 20 znaków'; errorEl.style.display = 'block'; return; }
 
         errorEl.style.display = 'none';
 
-        const produktPayload = { name: nazwa, price: parseFloat(cenaRaw), description: opis };
+        const produktPayload = {
+            name: nazwa,
+            price: parseFloat(cenaRaw),
+            quantity: parseInt(quantityRaw, 10),
+            description: opis
+        };
+
         const jestEdycja = Boolean(id);
         const url = jestEdycja ? `${API_URL}/product/${id}` : `${API_URL}/product`;
         const metoda = jestEdycja ? 'PUT' : 'POST';
@@ -415,7 +404,6 @@
             .then(odpowiedz => {
                 if (!odpowiedz.ok) throw new Error('Błąd serwera: ' + odpowiedz.status);
                 zamknijModal();
-                // Po edycji odświeżamy bieżącą stronę, po dodaniu wracamy na stronę 0
                 if (jestEdycja) {
                     if (trybWyszukiwania) wykonajWyszukiwanie(aktualnaStrona);
                     else pobierzProdukty(aktualnaStrona);
@@ -429,7 +417,6 @@
             });
     }
 
-    // Inicjalizacja
     pobierzProdukty(0);
 
     const textareaOpis = document.getElementById('input-opis');

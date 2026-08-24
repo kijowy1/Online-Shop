@@ -24,13 +24,17 @@ public class GetProductService implements Query<Integer, ProductDTO> {
 
     @Override
     public ResponseEntity<ProductDTO> execute(Integer input) {
-        //optional, if u can find it
-        logger.info("Executing " + getClass() + " input");
-        Optional<Product> productOptional = productRepository.findById(input);
-        if(productOptional.isPresent()){
-            // jezeli takie id jest, zwracamy produkt
-            return ResponseEntity.ok(new ProductDTO(productOptional.get()));
+        if(input==null || input<=0){
+            throw new IllegalArgumentException();
         }
+        //optional - if u can find it
+        logger.info("Executing " + getClass() + " input");
+            Optional<Product> productOptional = productRepository.findById(input);
+            if (productOptional.isPresent()) {
+                // jezeli takie id jest, zwracamy produkt
+                return ResponseEntity.ok(new ProductDTO(productOptional.get()));
+            }
+
         throw new ProductNotFoundException();
 
 
