@@ -8,11 +8,13 @@ public class ProductDTO {
     private String name;
     private Double price;
     private String description;
+    private Integer quantity;
     //tutaj funckja ktora daje informacje o produkcie
     public ProductDTO(Product product){
         this.id = product.getId();
         this.name  = product.getName();
         this.price = product.getPrice();
         this.description = product.getDescription();
+        this.quantity = product.getQuantity();
     }
 }
