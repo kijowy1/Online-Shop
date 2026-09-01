@@ -24,7 +24,6 @@ public class CreateProductService implements Command<Product,ProductDTO> {
 
     @Override
     public ResponseEntity<ProductDTO> execute(Product product) {
-
         ProductValidator.execute(product);
         Product savedProduct = productRepository.save(product);
         logger.info("Succesfully created product: " + product.getName() + " with id: " + product.getId());

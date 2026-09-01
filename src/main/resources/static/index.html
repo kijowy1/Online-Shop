@@ -5,6 +5,39 @@
     <title>Sklep - Lista Produktów</title>
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9; }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 500px;
+            margin-bottom: 10px;
+        }
+        .header-top h1 { margin: 0; }
+
+        .role-switch {
+            display: flex;
+            background: #e0e0e0;
+            border-radius: 6px;
+            padding: 2px;
+        }
+        .role-btn {
+            border: none;
+            background: transparent;
+            padding: 6px 12px;
+            font-size: 0.9em;
+            font-weight: bold;
+            color: #555;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .role-btn.active {
+            background: #007bff;
+            color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
         .product-card {
             background: white;
             border: 1px solid #ddd;
@@ -35,6 +68,18 @@
         .toolbar { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;}
         button.primary { background-color: #007bff; color: white; border-color: #007bff; }
         button.primary:hover { background-color: #0069d9; }
+
+        .btn-buy {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            font-size: 0.9em;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-buy:hover { background-color: #218838; }
 
         .search-input {
             padding: 8px;
@@ -146,11 +191,17 @@
 </head>
 <body>
 
-<h1>Moje Produkty</h1>
+<div class="header-top">
+    <h1>Moje Produkty</h1>
+    <div class="role-switch">
+        <button id="role-admin" class="role-btn active" onclick="ustawRole('admin')">Admin</button>
+        <button id="role-user" class="role-btn" onclick="ustawRole('user')">User</button>
+    </div>
+</div>
 
 <div class="toolbar">
     <button onclick="pobierzProdukty(0)">Odśwież listę</button>
-    <button class="primary" onclick="otworzModalDodawania()">+ Dodaj produkt</button>
+    <button id="btn-dodaj-glowny" class="primary" onclick="otworzModalDodawania()">+ Dodaj produkt</button>
     <input type="text" id="input-szukaj" class="search-input" placeholder="Szukaj po nazwie lub opisie..." oninput="naWpisanieTekstu()">
 </div>
 
@@ -193,6 +244,25 @@
     let trybWyszukiwania = false;
     let timeoutWyszukiwania = null;
     let aktualneProdukty = [];
+    let aktualnaRola = 'admin'; // 'admin' lub 'user'
+
+    function ustawRole(rola) {
+        aktualnaRola = rola;
+
+        document.getElementById('role-admin').classList.toggle('active', rola === 'admin');
+        document.getElementById('role-user').classList.toggle('active', rola === 'user');
+
+        const btnDodaj = document.getElementById('btn-dodaj-glowny');
+        btnDodaj.style.display = rola === 'admin' ? 'inline-block' : 'none';
+
+        wyswietlProdukty(aktualneProdukty);
+    }
+
+    function kupProdukt(event, id) {
+        event.preventDefault();
+        event.stopPropagation();
+        alert(`Kupiono produkt (Placeholder) ID: ${id}`);
+    }
 
     function wyswietlProdukty(dane) {
         const kontener = document.getElementById('lista-produktow');
@@ -216,14 +286,20 @@
             const opis = produkt.description || 'Brak opisu dla tego produktu.';
             const id = produkt.id;
 
+            const akcjeHtml = aktualnaRola === 'admin'
+                ? `<div class="actions-group">
+                       <button class="btn-edit" title="Edytuj produkt" onclick="otworzModalEdycji(event, ${id})">✏️</button>
+                       <button class="btn-delete" title="Usuń produkt" onclick="usunProdukt(event, ${id})">🗑️</button>
+                   </div>`
+                : `<div class="actions-group">
+                       <button class="btn-buy" onclick="kupProdukt(event, ${id})">Kup teraz</button>
+                   </div>`;
+
             el.innerHTML = `
                 <details>
                     <summary class="card-header">
                         <span class="product-name">${nazwa}</span>
-                        <div class="actions-group">
-                            <button class="btn-edit" title="Edytuj produkt" onclick="otworzModalEdycji(event, ${id})">✏️</button>
-                            <button class="btn-delete" title="Usuń produkt" onclick="usunProdukt(event, ${id})">🗑️</button>
-                        </div>
+                        ${akcjeHtml}
                     </summary>
                     <div class="details-content">
                         <div class="price">Cena: ${cena} zł</div>
@@ -286,7 +362,7 @@
         clearTimeout(timeoutWyszukiwania);
         timeoutWyszukiwania = setTimeout(() => {
             wykonajWyszukiwanie(0);
-        }, 500);
+        }, 300);
     }
 
     function wykonajWyszukiwanie(strona) {
@@ -300,7 +376,7 @@
         aktualnaStrona = strona;
         trybWyszukiwania = true;
 
-        const searchUrl = `${API_URL}/products/search?keyword=${encodeURIComponent(szukanaFraza)}&page=${aktualnaStrona}&size=${ROZMIAR_STRONY}`;
+        const searchUrl = `${API_URL}/product/search?keyword=${encodeURIComponent(szukanaFraza)}&page=${aktualnaStrona}&size=${ROZMIAR_STRONY}`;
 
         fetch(searchUrl)
             .then(odpowiedz => {
