@@ -60,5 +60,5 @@ public class UpdateProductService implements Command<UpdateProductCommand, Produ
 
     }
     // TODO:
-    //  Logger function
+    //  Logger method
 }
