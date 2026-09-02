@@ -20,11 +20,12 @@ public class Order {
     // tutaj mamy wymagania co musi spelnic ADD aby dodac produkt produktow
 
     @NotNull(message = "Name is Required")
-    @Column(name = "nameOfProduct")
+    @Column(name = "name_of_product")
     private String productName;
 
-    @Column(name ="customerId")
+    @Column(name = "customer_Id")
     private Integer customerId;
+
 
     @PositiveOrZero(message = "price must be positive or zero")
     @Column(name = "price")
