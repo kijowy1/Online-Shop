@@ -492,6 +492,68 @@
                 errorEl.style.display = 'block';
             });
     }
+    function kupProdukt(event, id) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        // 1. Znajdź produkt, który użytkownik chce kupić
+        const produkt = aktualneProdukty.find(p => p.id === id);
+        if (!produkt) return;
+
+        // Sprawdź, czy produkt jest dostępny
+        if (produkt.quantity <= 0) {
+            alert('Brak produktu na magazynie!');
+            return;
+        }
+
+        // 2. Przygotuj dane do nowego zamówienia (pasujące do klasy Order)
+        const orderPayload = {
+            productName: produkt.name,
+            customerId: 1, // Przykładowe ID klienta (jeśli nie masz logowania)
+            price: produkt.price,
+            status: "NEW"
+        };
+
+        // 3. Stwórz zamówienie w bazie (zapytanie POST)
+        // Upewnij się, że Twój OrderController nasłuchuje na /order
+        fetch(`${API_URL}/order`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderPayload)
+        })
+            .then(odpowiedz => {
+                if (!odpowiedz.ok) throw new Error('Nie udało się utworzyć zamówienia.');
+
+                // 4. Po utworzeniu zamówienia, przygotuj zaktualizowany produkt
+                const zaktualizowanyProdukt = {
+                    name: produkt.name,
+                    price: produkt.price,
+                    quantity: produkt.quantity - 1, // Zmniejszamy ilość o 1
+                    description: produkt.description
+                };
+
+                // 5. Zaktualizuj produkt w bazie (zapytanie PUT)
+                return fetch(`${API_URL}/product/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(zaktualizowanyProdukt)
+                });
+            })
+            .then(odpowiedz => {
+                if (!odpowiedz.ok) throw new Error('Nie udało się zaktualizować stanu magazynowego.');
+
+                alert('Pomyślnie kupiono produkt!');
+
+                // 6. Odśwież listę, aby pokazać nową ilość
+                if (trybWyszukiwania) wykonajWyszukiwanie(aktualnaStrona);
+                else pobierzProdukty(aktualnaStrona);
+            })
+            .catch(blad => {
+                console.error('Błąd:', blad);
+                alert('Wystąpił błąd podczas transakcji: ' + blad.message);
+            });
+    }
+
 
     pobierzProdukty(0);
 
