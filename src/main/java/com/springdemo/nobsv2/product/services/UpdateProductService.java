@@ -12,7 +12,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 
 @Service
 public class UpdateProductService implements Command<UpdateProductCommand, ProductDTO> {
@@ -29,36 +31,43 @@ public class UpdateProductService implements Command<UpdateProductCommand, Produ
     public ResponseEntity<ProductDTO> execute(UpdateProductCommand command) {
         Optional<Product> productOptional = productRepository.findById(command.getId());
         if(productOptional.isPresent()) {
-                Product oldProduct = productOptional.get();
-                Product newProduct = command.getProduct();
+                Product oldProduct = productOptional.get(); Product newProduct = command.getProduct();
                 logger.info("Updating " + oldProduct.getName() + " id " + oldProduct.getId() );
                 ProductValidator.execute(oldProduct);
-                StringBuilder productChanges = new StringBuilder();
-                if(!newProduct.getName().equals(oldProduct.getName())){
-                    productChanges.append("Name: " + oldProduct.getName() +
-                            " -> " + newProduct.getName() + "\n");
-                }
-                if(!newProduct.getDescription().equals(oldProduct.getDescription())){
-                    productChanges.append("Description: " + oldProduct.getDescription() +
-                            " -> " + newProduct.getDescription() + "\n");
-                }
-                if(!newProduct.getPrice().equals(oldProduct.getPrice())){
-                    productChanges.append("Price: " + oldProduct.getPrice() +
-                            " -> " + newProduct.getPrice() + "\n");
-                }
-                if(!newProduct.getQuantity().equals(oldProduct.getQuantity())){
-                    productChanges.append("Price: " + oldProduct.getQuantity() +
-                            " -> " + newProduct.getQuantity() + "\n");
-                }
+                StringBuilder productChanges = changeLog(newProduct,oldProduct);
                 newProduct.setId(command.getId());
                 productRepository.save(newProduct);
-                logger.info("Succesfully updated - " + productChanges);
+                logger.info("Succesfully updated " + productChanges);
                 return ResponseEntity.ok(new ProductDTO(newProduct));
         }
         //jezeli not found trzeba ladnie poinformowac uzytkownika ze cos zle wpsisal albo nie ma
         throw new ProductNotFoundException();
 
     }
-    // TODO:
-    //  Logger method
+    public static <T> void appendIfChanged(
+            Product newProduct,
+            Product oldProduct,
+            StringBuilder sb,
+            String fieldName,
+            Function<Product, T> getter) {
+        T oldValue = getter.apply(oldProduct);
+        T newValue = getter.apply(newProduct);
+        if(!Objects.equals(oldValue,newValue)){
+                  sb.append(fieldName)
+                    .append(" ")
+                    .append(oldValue)
+                    .append(" -> ")
+                    .append(newValue)
+                    .append("\n");
+        }
+    }
+    public StringBuilder changeLog(Product newProduct, Product oldProduct){
+        StringBuilder sb = new StringBuilder();
+        appendIfChanged(newProduct,oldProduct,sb,"Name: ",Product::getName);
+        appendIfChanged(newProduct,oldProduct,sb,"Price: ",Product::getPrice);
+        appendIfChanged(newProduct,oldProduct,sb,"Description: ",Product::getDescription);
+        appendIfChanged(newProduct,oldProduct,sb,"Quantity: ",Product::getQuantity);
+
+        return sb;
+    }
 }
