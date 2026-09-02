@@ -21,4 +21,5 @@ public class CustomerController {
     public ResponseEntity<Customer> getCustomerById(@PathVariable Integer id){
         return ResponseEntity.ok(customerRepository.findById(id).get());
     }
+
 }
