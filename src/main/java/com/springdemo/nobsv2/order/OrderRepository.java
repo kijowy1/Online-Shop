@@ -1,5 +1,6 @@
 package com.springdemo.nobsv2.order;
 
+import com.springdemo.nobsv2.mappings.Customer;
 import com.springdemo.nobsv2.order.model.Order;
 import com.springdemo.nobsv2.order.model.OrderDTO;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,4 +11,6 @@ import java.util.List;
 public interface OrderRepository extends JpaRepository<Order, Integer> {
 
     List<LocalDateTime> findByCreatedAtAfter(LocalDateTime createdAtAfter);
+
+    List<Order> findByCustomerId(Integer customerId);
 }

@@ -21,22 +21,6 @@
             border-radius: 6px;
             padding: 2px;
         }
-        .role-btn {
-            border: none;
-            background: transparent;
-            padding: 6px 12px;
-            font-size: 0.9em;
-            font-weight: bold;
-            color: #555;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: all 0.2s;
-        }
-        .role-btn.active {
-            background: #007bff;
-            color: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-        }
 
         .product-card {
             background: white;
@@ -194,15 +178,21 @@
 <div class="header-top">
     <h1>Moje Produkty</h1>
     <div class="role-switch">
-        <button id="role-admin" class="role-btn active" onclick="ustawRole('admin')">Admin</button>
-        <button id="role-user" class="role-btn" onclick="ustawRole('user')">User</button>
+        <select id="user-selector" onchange="zmienUzytkownika(this.value)" style="padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold;">
+            <option value="admin">Konto: Administrator</option>
+            <option value="1">Konto: Klient 1 (ID: 1)</option>
+            <option value="2">Konto: Klient 2 (ID: 2)</option>
+            <option value="3">Konto: Klient 3 (ID: 3)</option>
+        </select>
     </div>
 </div>
 
 <div class="toolbar">
     <button onclick="pobierzProdukty(0)">Odśwież listę</button>
     <button id="btn-dodaj-glowny" class="primary" onclick="otworzModalDodawania()">+ Dodaj produkt</button>
+    <button id="btn-moje-zamowienia" class="primary" style="display: none; background-color: #17a2b8; border-color: #17a2b8;" onclick="otworzMojeZamowienia()">Moje zamówienia</button>
     <input type="text" id="input-szukaj" class="search-input" placeholder="Szukaj po nazwie lub opisie..." oninput="naWpisanieTekstu()">
+
 </div>
 
 <div id="lista-produktow" style="margin-top: 20px;"></div>
@@ -236,6 +226,17 @@
         </div>
     </div>
 </div>
+<div class="modal-overlay" id="modal-zamowienia">
+    <div class="modal-box" style="max-width: 500px;">
+        <h2>Moje zamówienia</h2>
+        <div id="lista-zamowien-kontener" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;">
+            <!-- Tutaj wpadną zamówienia z JavaScriptu -->
+        </div>
+        <div class="modal-actions">
+            <button onclick="zamknijModalZamowien()">Zamknij</button>
+        </div>
+    </div>
+</div>
 
 <script>
     const API_URL = 'http://localhost:8080';
@@ -244,19 +245,68 @@
     let trybWyszukiwania = false;
     let timeoutWyszukiwania = null;
     let aktualneProdukty = [];
-    let aktualnaRola = 'admin'; // 'admin' lub 'user'
+    let aktualnaRola = 'admin';
+    let zalogowanyKlientId = null;
 
-    function ustawRole(rola) {
-        aktualnaRola = rola;
-
-        document.getElementById('role-admin').classList.toggle('active', rola === 'admin');
-        document.getElementById('role-user').classList.toggle('active', rola === 'user');
+    function zmienUzytkownika(wybranaWartosc) {
+        if (wybranaWartosc === 'admin') {
+            aktualnaRola = 'admin';
+            zalogowanyKlientId = null;
+        } else {
+            aktualnaRola = 'user';
+            zalogowanyKlientId = parseInt(wybranaWartosc, 10);
+        }
 
         const btnDodaj = document.getElementById('btn-dodaj-glowny');
-        btnDodaj.style.display = rola === 'admin' ? 'inline-block' : 'none';
+        btnDodaj.style.display = aktualnaRola === 'admin' ? 'inline-block' : 'none';
 
-        wyswietlProdukty(aktualneProdukty);
+        const btnMojeZamowienia = document.getElementById('btn-moje-zamowienia');
+        btnMojeZamowienia.style.display = aktualnaRola === 'user' ? 'inline-block' : 'none';
+
+        wyswietlProdukty(aktualneProdukty); // Odświeża listę, dopasowując przyciski do roli[span_2](start_span)[span_2](end_span)
     }
+    function otworzMojeZamowienia() {
+        if (!zalogowanyKlientId) return;
+
+        document.getElementById('modal-zamowienia').classList.add('active');
+        const kontener = document.getElementById('lista-zamowien-kontener');
+        kontener.innerHTML = '<p>Ładowanie zamówień...</p>';
+
+        // UWAGA: Upewnij się, że podany niżej adres zgadza się z Twoim OrderController w Springu!
+        fetch(`${API_URL}/order/customer/${zalogowanyKlientId}`)
+            .then(odpowiedz => {
+                if (!odpowiedz.ok) throw new Error('Nie udało się pobrać zamówień');
+                return odpowiedz.json();
+            })
+            .then(zamowienia => {
+                if (!Array.isArray(zamowienia) || zamowienia.length === 0) {
+                    kontener.innerHTML = '<p>Nie masz jeszcze żadnych zamówień.</p>';
+                    return;
+                }
+
+                let html = '';
+                zamowienia.forEach(zamowienie => {
+                    html += `
+                    <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 6px;">
+                        <strong>ID Zamówienia:</strong> ${zamowienie.id} <br>
+                        <strong>Produkt:</strong> ${zamowienie.productName || 'Brak nazwy'} <br>
+                        <strong>Cena:</strong> ${zamowienie.price || 0} zł <br>
+                        <strong>Status:</strong> <span style="color: #007bff; font-weight: bold;">${zamowienie.status}</span>
+                    </div>
+                `;
+                });
+                kontener.innerHTML = html;
+            })
+            .catch(blad => {
+                console.error(blad);
+                kontener.innerHTML = '<p style="color: red;">Wystąpił błąd. Upewnij się, że masz endpoint GET /order/customer/{id} w swoim backendzie.</p>';
+            });
+    }
+
+    function zamknijModalZamowien() {
+        document.getElementById('modal-zamowienia').classList.remove('active');
+    }
+
 
     function kupProdukt(event, id) {
         event.preventDefault();
@@ -508,11 +558,12 @@
 
         // 2. Przygotuj dane do nowego zamówienia (pasujące do klasy Order)
         const orderPayload = {
-            productName: produkt.name,
-            customerId: 1, // Przykładowe ID klienta (jeśli nie masz logowania)
-            price: produkt.price,
-            status: "NEW"
+            productName: produkt.name, //[span_4](start_span)[span_4](end_span)
+            customerId: zalogowanyKlientId, // Pobiera ID klienta wybranego z listy
+            price: produkt.price, //[span_5](start_span)[span_5](end_span)
+            status: "NEW" //[span_6](start_span)[span_6](end_span)
         };
+
 
         // 3. Stwórz zamówienie w bazie (zapytanie POST)
         // Upewnij się, że Twój OrderController nasłuchuje na /order
