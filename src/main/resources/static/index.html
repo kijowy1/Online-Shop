@@ -190,7 +190,7 @@
 <div class="toolbar">
     <button onclick="pobierzProdukty(0)">Odśwież listę</button>
     <button id="btn-dodaj-glowny" class="primary" onclick="otworzModalDodawania()">+ Dodaj produkt</button>
-    <button id="btn-moje-zamowienia" class="primary" style="display: none; background-color: #17a2b8; border-color: #17a2b8;" onclick="otworzMojeZamowienia()">Moje zamówienia</button>
+    <button id="btn-moje-zamowienia" class="primary" style="display: none; background-color: #17a2b8; border-color: #17a2b8;" onclick="otworzMojeZamowienia(0)">Moje zamówienia</button>
     <input type="text" id="input-szukaj" class="search-input" placeholder="Szukaj po nazwie lub opisie..." oninput="naWpisanieTekstu()">
 
 </div>
@@ -232,6 +232,8 @@
         <div id="lista-zamowien-kontener" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;">
             <!-- Tutaj wpadną zamówienia z JavaScriptu -->
         </div>
+        <!-- Dodany kontener na paginację zamówień -->
+        <div id="paginacja-zamowien" class="pagination" style="margin-top: 10px; margin-bottom: 15px;"></div>
         <div class="modal-actions">
             <button onclick="zamknijModalZamowien()">Zamknij</button>
         </div>
@@ -241,6 +243,7 @@
 <script>
     const API_URL = 'http://localhost:8080';
     const ROZMIAR_STRONY = 20;
+    const ROZMIAR_STRONY_ZAMOWIEN = 5; // paginacja po 5 zamówień
     let aktualnaStrona = 0;
     let trybWyszukiwania = false;
     let timeoutWyszukiwania = null;
@@ -263,23 +266,45 @@
         const btnMojeZamowienia = document.getElementById('btn-moje-zamowienia');
         btnMojeZamowienia.style.display = aktualnaRola === 'user' ? 'inline-block' : 'none';
 
-        wyswietlProdukty(aktualneProdukty); // Odświeża listę, dopasowując przyciski do roli[span_2](start_span)[span_2](end_span)
+        wyswietlProdukty(aktualneProdukty);
     }
-    function otworzMojeZamowienia() {
+
+    function otworzMojeZamowienia(strona = 0) {
         if (!zalogowanyKlientId) return;
 
         document.getElementById('modal-zamowienia').classList.add('active');
         const kontener = document.getElementById('lista-zamowien-kontener');
-        kontener.innerHTML = '<p>Ładowanie zamówień...</p>';
 
-        // UWAGA: Upewnij się, że podany niżej adres zgadza się z Twoim OrderController w Springu!
-        fetch(`${API_URL}/order/customer/${zalogowanyKlientId}`)
+        if (strona === 0) {
+            kontener.innerHTML = '<p>Ładowanie zamówień...</p>';
+            document.getElementById('paginacja-zamowien').innerHTML = '';
+        }
+
+        // Dodano parametry paginacji w zapytaniu (w przypadku gdy backend wspiera Pageable)
+        fetch(`${API_URL}/order/customer/${zalogowanyKlientId}?page=${strona}&size=${ROZMIAR_STRONY_ZAMOWIEN}`)
             .then(odpowiedz => {
                 if (!odpowiedz.ok) throw new Error('Nie udało się pobrać zamówień');
                 return odpowiedz.json();
             })
-            .then(zamowienia => {
-                if (!Array.isArray(zamowienia) || zamowienia.length === 0) {
+            .then(dane => {
+                let zamowienia = [];
+                let totalPages = 1;
+                let currentPage = strona;
+
+                // Obsługa dwóch przypadków: Backend zwraca Pageable lub surową listę (Array)
+                if (Array.isArray(dane)) {
+                    // Backend nie ma paginacji - robimy to po stronie klienta
+                    totalPages = Math.ceil(dane.length / ROZMIAR_STRONY_ZAMOWIEN);
+                    const start = strona * ROZMIAR_STRONY_ZAMOWIEN;
+                    zamowienia = dane.slice(start, start + ROZMIAR_STRONY_ZAMOWIEN);
+                } else {
+                    // Backend natywnie zwraca obiekt Page ze Springa
+                    zamowienia = dane.content || [];
+                    totalPages = dane.totalPages !== undefined ? dane.totalPages : 1;
+                    currentPage = dane.number !== undefined ? dane.number : strona;
+                }
+
+                if (!zamowienia || zamowienia.length === 0) {
                     kontener.innerHTML = '<p>Nie masz jeszcze żadnych zamówień.</p>';
                     return;
                 }
@@ -296,6 +321,9 @@
                 `;
                 });
                 kontener.innerHTML = html;
+
+                // Renderuj paginację dla zamówień
+                renderujPaginacjeZamowien(totalPages, currentPage);
             })
             .catch(blad => {
                 console.error(blad);
@@ -303,15 +331,28 @@
             });
     }
 
-    function zamknijModalZamowien() {
-        document.getElementById('modal-zamowienia').classList.remove('active');
+    function renderujPaginacjeZamowien(totalPages, currentPage) {
+        const paginacjaEl = document.getElementById('paginacja-zamowien');
+        paginacjaEl.innerHTML = '';
+
+        if (totalPages <= 1) return;
+
+        for (let i = 0; i < totalPages; i++) {
+            const btn = document.createElement('button');
+            btn.textContent = i + 1;
+
+            if (i === currentPage) {
+                btn.classList.add('active');
+            } else {
+                btn.onclick = () => otworzMojeZamowienia(i);
+            }
+
+            paginacjaEl.appendChild(btn);
+        }
     }
 
-
-    function kupProdukt(event, id) {
-        event.preventDefault();
-        event.stopPropagation();
-        alert(`Kupiono produkt (Placeholder) ID: ${id}`);
+    function zamknijModalZamowien() {
+        document.getElementById('modal-zamowienia').classList.remove('active');
     }
 
     function wyswietlProdukty(dane) {
@@ -542,31 +583,26 @@
                 errorEl.style.display = 'block';
             });
     }
+
     function kupProdukt(event, id) {
         event.preventDefault();
         event.stopPropagation();
 
-        // 1. Znajdź produkt, który użytkownik chce kupić
         const produkt = aktualneProdukty.find(p => p.id === id);
         if (!produkt) return;
 
-        // Sprawdź, czy produkt jest dostępny
         if (produkt.quantity <= 0) {
             alert('Brak produktu na magazynie!');
             return;
         }
 
-        // 2. Przygotuj dane do nowego zamówienia (pasujące do klasy Order)
         const orderPayload = {
-            productName: produkt.name, //[span_4](start_span)[span_4](end_span)
-            customerId: zalogowanyKlientId, // Pobiera ID klienta wybranego z listy
-            price: produkt.price, //[span_5](start_span)[span_5](end_span)
-            status: "NEW" //[span_6](start_span)[span_6](end_span)
+            productName: produkt.name,
+            customerId: zalogowanyKlientId,
+            price: produkt.price,
+            status: "NEW"
         };
 
-
-        // 3. Stwórz zamówienie w bazie (zapytanie POST)
-        // Upewnij się, że Twój OrderController nasłuchuje na /order
         fetch(`${API_URL}/order`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -575,15 +611,13 @@
             .then(odpowiedz => {
                 if (!odpowiedz.ok) throw new Error('Nie udało się utworzyć zamówienia.');
 
-                // 4. Po utworzeniu zamówienia, przygotuj zaktualizowany produkt
                 const zaktualizowanyProdukt = {
                     name: produkt.name,
                     price: produkt.price,
-                    quantity: produkt.quantity - 1, // Zmniejszamy ilość o 1
+                    quantity: produkt.quantity - 1,
                     description: produkt.description
                 };
 
-                // 5. Zaktualizuj produkt w bazie (zapytanie PUT)
                 return fetch(`${API_URL}/product/${id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
@@ -595,7 +629,6 @@
 
                 alert('Pomyślnie kupiono produkt!');
 
-                // 6. Odśwież listę, aby pokazać nową ilość
                 if (trybWyszukiwania) wykonajWyszukiwanie(aktualnaStrona);
                 else pobierzProdukty(aktualnaStrona);
             })
