@@ -75,6 +75,8 @@ To acces index http://localhost:8080/index.html
 ![App Screenshot](https://snipboard.io/hWBjiD.jpg)
 ![App Screenshot](https://snipboard.io/PGrMUH.jpg)
 ![App Screenshot](https://snipboard.io/sfW6TF.jpg)
+![App Screenshot](https://snipboard.io/9n4FRh.jpg)
+![App Screenshot](https://snipboard.io/01ldKW.jpg)
 
 ## Authors
 
