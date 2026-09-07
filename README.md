@@ -12,7 +12,7 @@ It is my first Spring api, im learning Springboot framework while creating it, f
 
 ## Tech Stack
 
-**Backend:** Java, Spring Boot, Spring Data JPA, Hibernate, JUnit 5, Mockito
+**Backend:** Java, Spring Boot, Spring Data JPA, Hibernate, JUnit 5, Mockito, MySQL
 
 **Frontend:** JavaScript, HTML
 
@@ -20,8 +20,6 @@ It is my first Spring api, im learning Springboot framework while creating it, f
 
 * **Java JDK 17** (or higher)
 * **IDE Setup (Lombok):** Ensure **Annotation Processing** is enabled in your IDE settings (e.g., IntelliJ IDEA: *Settings -> Build, Execution, Deployment -> Compiler -> Annotation Processors*).
-* **Database:** Make sure your local database is running and credentials match `src/main/resources/application.properties`.
-
 ### Clone the repository
 
 ```bash
