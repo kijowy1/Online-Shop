@@ -6,7 +6,7 @@ It is my first Spring api, im learning Springboot framework while creating it, f
 
 ## Acknowledgements
 
- - [Tutorial i have started with (PeachezProgramming)](https://youtube.com/playlist?list=PL7TZZ2ip0DRCmJ57pzkc3EChRTJ6pm_bH&si=4ZXNbds5xQJuStSo) - Currently i have ended on lesson 10, because i wanted to make some things by myself.
+ - [Tutorial i have started with (PeachezProgramming)](https://youtube.com/playlist?list=PL7TZZ2ip0DRCmJ57pzkc3EChRTJ6pm_bH&si=4ZXNbds5xQJuStSo) - Used as a starting foundation, then extended with custom features and architectural improvements.
  - [The website i used to write readme](https://readme.so)
 
 
