@@ -110,13 +110,13 @@
             padding: 20px;
             border-radius: 8px;
             width: 100%;
-            max-width: 420px;
+            max-width: 550px; /* Nieco szersze dla zamówień admina */
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         .modal-box h2 { margin-top: 0; }
         .form-group { margin-bottom: 12px; }
         .form-group label { display: block; margin-bottom: 4px; font-weight: bold; color: #2c3e50; }
-        .form-group input, .form-group textarea {
+        .form-group input, .form-group textarea, .form-group select {
             width: 100%;
             padding: 8px;
             border: 1px solid #ccc;
@@ -190,6 +190,10 @@
 <div class="toolbar">
     <button onclick="pobierzProdukty(0)">Odśwież listę</button>
     <button id="btn-dodaj-glowny" class="primary" onclick="otworzModalDodawania()">+ Dodaj produkt</button>
+
+    <!-- Dodany przycisk zarządzania dla Admina -->
+    <button id="btn-zarzadzaj-zamowieniami" class="primary" style="background-color: #fd7e14; border-color: #fd7e14;" onclick="otworzWszystkieZamowienia(0)">Zarządzaj zamówieniami</button>
+
     <button id="btn-moje-zamowienia" class="primary" style="display: none; background-color: #17a2b8; border-color: #17a2b8;" onclick="otworzMojeZamowienia(0)">Moje zamówienia</button>
     <input type="text" id="input-szukaj" class="search-input" placeholder="Szukaj po nazwie lub opisie..." oninput="naWpisanieTekstu()">
 
@@ -226,13 +230,13 @@
         </div>
     </div>
 </div>
+
 <div class="modal-overlay" id="modal-zamowienia">
-    <div class="modal-box" style="max-width: 500px;">
-        <h2>Moje zamówienia</h2>
-        <div id="lista-zamowien-kontener" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;">
+    <div class="modal-box">
+        <h2 id="modal-zamowienia-tytul">Moje zamówienia</h2>
+        <div id="lista-zamowien-kontener" style="max-height: 400px; overflow-y: auto; margin-bottom: 15px; padding-right: 5px;">
             <!-- Tutaj wpadną zamówienia z JavaScriptu -->
         </div>
-        <!-- Dodany kontener na paginację zamówień -->
         <div id="paginacja-zamowien" class="pagination" style="margin-top: 10px; margin-bottom: 15px;"></div>
         <div class="modal-actions">
             <button onclick="zamknijModalZamowien()">Zamknij</button>
@@ -243,11 +247,12 @@
 <script>
     const API_URL = 'http://localhost:8080';
     const ROZMIAR_STRONY = 20;
-    const ROZMIAR_STRONY_ZAMOWIEN = 5; // paginacja po 5 zamówień
+    const ROZMIAR_STRONY_ZAMOWIEN = 5;
     let aktualnaStrona = 0;
     let trybWyszukiwania = false;
     let timeoutWyszukiwania = null;
     let aktualneProdukty = [];
+    let aktualneZamowienia = []; // Przechowuje listę załadowanych zamówień dla admina
     let aktualnaRola = 'admin';
     let zalogowanyKlientId = null;
 
@@ -260,19 +265,19 @@
             zalogowanyKlientId = parseInt(wybranaWartosc, 10);
         }
 
-        const btnDodaj = document.getElementById('btn-dodaj-glowny');
-        btnDodaj.style.display = aktualnaRola === 'admin' ? 'inline-block' : 'none';
-
-        const btnMojeZamowienia = document.getElementById('btn-moje-zamowienia');
-        btnMojeZamowienia.style.display = aktualnaRola === 'user' ? 'inline-block' : 'none';
+        document.getElementById('btn-dodaj-glowny').style.display = aktualnaRola === 'admin' ? 'inline-block' : 'none';
+        document.getElementById('btn-zarzadzaj-zamowieniami').style.display = aktualnaRola === 'admin' ? 'inline-block' : 'none';
+        document.getElementById('btn-moje-zamowienia').style.display = aktualnaRola === 'user' ? 'inline-block' : 'none';
 
         wyswietlProdukty(aktualneProdukty);
     }
 
+    // Funkcja dla Klienta - Moje Zamówienia
     function otworzMojeZamowienia(strona = 0) {
         if (!zalogowanyKlientId) return;
 
         document.getElementById('modal-zamowienia').classList.add('active');
+        document.getElementById('modal-zamowienia-tytul').textContent = 'Moje zamówienia';
         const kontener = document.getElementById('lista-zamowien-kontener');
 
         if (strona === 0) {
@@ -280,37 +285,21 @@
             document.getElementById('paginacja-zamowien').innerHTML = '';
         }
 
-        // Dodano parametry paginacji w zapytaniu (w przypadku gdy backend wspiera Pageable)
         fetch(`${API_URL}/order/customer/${zalogowanyKlientId}?page=${strona}&size=${ROZMIAR_STRONY_ZAMOWIEN}`)
             .then(odpowiedz => {
                 if (!odpowiedz.ok) throw new Error('Nie udało się pobrać zamówień');
                 return odpowiedz.json();
             })
             .then(dane => {
-                let zamowienia = [];
-                let totalPages = 1;
-                let currentPage = strona;
+                let zamowienia = processPaginationData(dane, strona);
 
-                // Obsługa dwóch przypadków: Backend zwraca Pageable lub surową listę (Array)
-                if (Array.isArray(dane)) {
-                    // Backend nie ma paginacji - robimy to po stronie klienta
-                    totalPages = Math.ceil(dane.length / ROZMIAR_STRONY_ZAMOWIEN);
-                    const start = strona * ROZMIAR_STRONY_ZAMOWIEN;
-                    zamowienia = dane.slice(start, start + ROZMIAR_STRONY_ZAMOWIEN);
-                } else {
-                    // Backend natywnie zwraca obiekt Page ze Springa
-                    zamowienia = dane.content || [];
-                    totalPages = dane.totalPages !== undefined ? dane.totalPages : 1;
-                    currentPage = dane.number !== undefined ? dane.number : strona;
-                }
-
-                if (!zamowienia || zamowienia.length === 0) {
+                if (!zamowienia.dane || zamowienia.dane.length === 0) {
                     kontener.innerHTML = '<p>Nie masz jeszcze żadnych zamówień.</p>';
                     return;
                 }
 
                 let html = '';
-                zamowienia.forEach(zamowienie => {
+                zamowienia.dane.forEach(zamowienie => {
                     html += `
                     <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 6px;">
                         <strong>ID Zamówienia:</strong> ${zamowienie.id} <br>
@@ -321,17 +310,118 @@
                 `;
                 });
                 kontener.innerHTML = html;
-
-                // Renderuj paginację dla zamówień
-                renderujPaginacjeZamowien(totalPages, currentPage);
+                renderujPaginacjeZamowien(zamowienia.totalPages, zamowienia.currentPage, false);
             })
             .catch(blad => {
                 console.error(blad);
-                kontener.innerHTML = '<p style="color: red;">Wystąpił błąd. Upewnij się, że masz endpoint GET /order/customer/{id} w swoim backendzie.</p>';
+                kontener.innerHTML = '<p style="color: red;">Wystąpił błąd pobierania zamówień.</p>';
             });
     }
 
-    function renderujPaginacjeZamowien(totalPages, currentPage) {
+    // Nowa Funkcja dla Admina - Wszystkie zamówienia
+    function otworzWszystkieZamowienia(strona = 0) {
+        document.getElementById('modal-zamowienia').classList.add('active');
+        document.getElementById('modal-zamowienia-tytul').textContent = 'Zarządzanie zamówieniami';
+        const kontener = document.getElementById('lista-zamowien-kontener');
+
+        if (strona === 0) {
+            kontener.innerHTML = '<p>Ładowanie zamówień...</p>';
+            document.getElementById('paginacja-zamowien').innerHTML = '';
+        }
+
+        fetch(`${API_URL}/order?page=${strona}&size=${ROZMIAR_STRONY_ZAMOWIEN}`)
+            .then(odpowiedz => {
+                if (!odpowiedz.ok) throw new Error('Nie udało się pobrać zamówień');
+                return odpowiedz.json();
+            })
+            .then(dane => {
+                let zamowienia = processPaginationData(dane, strona);
+                aktualneZamowienia = zamowienia.dane; // Zapisujemy by pobrać pełen obiekt przy edycji
+
+                if (!zamowienia.dane || zamowienia.dane.length === 0) {
+                    kontener.innerHTML = '<p>Brak zamówień w systemie.</p>';
+                    return;
+                }
+
+                const statusy = ['NEW', 'PROCESSING', 'COMPLETED', 'CANCELLED'];
+                let html = '';
+
+                zamowienia.dane.forEach(zamowienie => {
+                    let opcjeSelect = statusy.map(s => `<option value="${s}" ${zamowienie.status === s ? 'selected' : ''}>${s}</option>`).join('');
+
+                    html += `
+                    <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #fff;">
+                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-bottom: 5px;">
+                            <span><strong>ID:</strong> ${zamowienie.id}</span>
+                            <span><strong>Klient ID:</strong> ${zamowienie.customerId}</span>
+                        </div>
+                        <strong>Produkt:</strong> ${zamowienie.productName || 'Brak nazwy'} <br>
+                        <strong>Cena:</strong> ${zamowienie.price || 0} zł <br>
+
+                        <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
+                            <label style="font-weight: bold; font-size: 0.9em;">Status:</label>
+                            <select style="padding: 4px; border-radius: 4px;" onchange="aktualizujStatusZamowienia(${zamowienie.id}, this.value, ${zamowienia.currentPage})">
+                                ${opcjeSelect}
+                            </select>
+                        </div>
+                    </div>
+                `;
+                });
+                kontener.innerHTML = html;
+                renderujPaginacjeZamowien(zamowienia.totalPages, zamowienia.currentPage, true);
+            })
+            .catch(blad => {
+                console.error(blad);
+                kontener.innerHTML = '<p style="color: red;">Wystąpił błąd pobierania zamówień.</p>';
+            });
+    }
+
+    // Wysyła PUT z aktualizacją zamówienia
+    function aktualizujStatusZamowienia(orderId, nowyStatus, strona) {
+        // Musimy wysłać cały obiekt, by backend nie nadpisał innych pól nullami[span_6](start_span)[span_6](end_span)
+        const zamowienieBaza = aktualneZamowienia.find(z => z.id === orderId);
+        if (!zamowienieBaza) return;
+
+        const zaktualizowaneZamowienie = {
+            ...zamowienieBaza,
+            status: nowyStatus
+        };
+
+        fetch(`${API_URL}/order/${orderId}`, {
+            method: 'PUT', // Musisz mieć @PutMapping("/{id}") w kontrolerze
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(zaktualizowaneZamowienie)
+        })
+            .then(odpowiedz => {
+                if (!odpowiedz.ok) throw new Error('Błąd przy aktualizacji statusu');
+                // Zakończono sukcesem, nie trzeba powiadomienia by nie irytować admina klikającego często
+            })
+            .catch(err => {
+                alert('Wystąpił błąd podczas aktualizacji: Upewnij się, że poprawiłeś backend na @PutMapping');
+                console.error(err);
+                otworzWszystkieZamowienia(strona); // reset widoku w razie błędu
+            });
+    }
+
+    // Pomocnicza funkcja do obsługi różnych typów zwrotek paginacji ze Springa
+    function processPaginationData(dane, strona) {
+        let totalPages = 1;
+        let currentPage = strona;
+        let wycieteDane = [];
+
+        if (Array.isArray(dane)) {
+            totalPages = Math.ceil(dane.length / ROZMIAR_STRONY_ZAMOWIEN);
+            const start = strona * ROZMIAR_STRONY_ZAMOWIEN;
+            wycieteDane = dane.slice(start, start + ROZMIAR_STRONY_ZAMOWIEN);
+        } else {
+            wycieteDane = dane.content || [];
+            totalPages = dane.totalPages !== undefined ? dane.totalPages : 1;
+            currentPage = dane.number !== undefined ? dane.number : strona;
+        }
+        return { dane: wycieteDane, totalPages, currentPage };
+    }
+
+    function renderujPaginacjeZamowien(totalPages, currentPage, isAdminView) {
         const paginacjaEl = document.getElementById('paginacja-zamowien');
         paginacjaEl.innerHTML = '';
 
@@ -344,9 +434,11 @@
             if (i === currentPage) {
                 btn.classList.add('active');
             } else {
-                btn.onclick = () => otworzMojeZamowienia(i);
+                btn.onclick = () => {
+                    if (isAdminView) otworzWszystkieZamowienia(i);
+                    else otworzMojeZamowienia(i);
+                };
             }
-
             paginacjaEl.appendChild(btn);
         }
     }
