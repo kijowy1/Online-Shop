@@ -3,10 +3,9 @@ package com.springdemo.nobsv2.order;
 
 import com.springdemo.nobsv2.order.model.Order;
 import com.springdemo.nobsv2.order.model.OrderDTO;
-import com.springdemo.nobsv2.order.services.CreateOrderService;
-import com.springdemo.nobsv2.order.services.GetAllOrderService;
-import com.springdemo.nobsv2.order.services.GetCustomerOrderService;
-import com.springdemo.nobsv2.order.services.GetOrderService;
+import com.springdemo.nobsv2.order.model.UpdateOrderCommand;
+import com.springdemo.nobsv2.order.services.*;
+import org.aspectj.weaver.ast.Or;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -25,15 +24,21 @@ public class OrderController {
     private final GetOrderService getOrderService;
 
     private final GetCustomerOrderService getCustomerOrderService;
+
     private final GetAllOrderService getAllOrderService;
+
+    private final UpdateOrderService updateOrderService;
 
     public OrderController(CreateOrderService createOrderService,
                            GetOrderService getOrderService,
-                           GetCustomerOrderService getCustomerOrderService, GetAllOrderService getAllOrderService) {
+                           GetCustomerOrderService getCustomerOrderService,
+                           GetAllOrderService getAllOrderService,
+                           UpdateOrderService updateOrderService) {
         this.createOrderService = createOrderService;
         this.getOrderService = getOrderService;
         this.getCustomerOrderService = getCustomerOrderService;
         this.getAllOrderService = getAllOrderService;
+        this.updateOrderService = updateOrderService;
     }
 
     @PostMapping
@@ -51,5 +56,9 @@ public class OrderController {
     @GetMapping
     public ResponseEntity<Page<OrderDTO>> getAllOrders(Pageable page){
         return getAllOrderService.execute(page);
+    }
+    @PutMapping("/{id}")
+    public ResponseEntity<OrderDTO> updateOrder(@PathVariable Integer id, @RequestBody Order order){
+        return updateOrderService.execute(new UpdateOrderCommand(id,order));
     }
 }

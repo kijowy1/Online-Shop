@@ -33,7 +33,7 @@ public class UpdateProductService implements Command<UpdateProductCommand, Produ
         if(productOptional.isPresent()) {
                 Product oldProduct = productOptional.get(); Product newProduct = command.getProduct();
                 logger.info("Updating " + oldProduct.getName() + " id " + oldProduct.getId() );
-                ProductValidator.execute(oldProduct);
+                ProductValidator.execute(newProduct);
                 StringBuilder productChanges = changeLog(newProduct,oldProduct);
                 newProduct.setId(command.getId());
                 productRepository.save(newProduct);
