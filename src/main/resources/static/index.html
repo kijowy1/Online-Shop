@@ -110,7 +110,7 @@
             padding: 20px;
             border-radius: 8px;
             width: 100%;
-            max-width: 550px; /* Nieco szersze dla zamówień admina */
+            max-width: 550px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         .modal-box h2 { margin-top: 0; }
@@ -190,13 +190,9 @@
 <div class="toolbar">
     <button onclick="pobierzProdukty(0)">Odśwież listę</button>
     <button id="btn-dodaj-glowny" class="primary" onclick="otworzModalDodawania()">+ Dodaj produkt</button>
-
-    <!-- Dodany przycisk zarządzania dla Admina -->
     <button id="btn-zarzadzaj-zamowieniami" class="primary" style="background-color: #fd7e14; border-color: #fd7e14;" onclick="otworzWszystkieZamowienia(0)">Zarządzaj zamówieniami</button>
-
     <button id="btn-moje-zamowienia" class="primary" style="display: none; background-color: #17a2b8; border-color: #17a2b8;" onclick="otworzMojeZamowienia(0)">Moje zamówienia</button>
     <input type="text" id="input-szukaj" class="search-input" placeholder="Szukaj po nazwie lub opisie..." oninput="naWpisanieTekstu()">
-
 </div>
 
 <div id="lista-produktow" style="margin-top: 20px;"></div>
@@ -235,7 +231,7 @@
     <div class="modal-box">
         <h2 id="modal-zamowienia-tytul">Moje zamówienia</h2>
         <div id="lista-zamowien-kontener" style="max-height: 400px; overflow-y: auto; margin-bottom: 15px; padding-right: 5px;">
-            <!-- Tutaj wpadną zamówienia z JavaScriptu -->
+            <!-- Tutaj dynamicznie wpadną zamówienia z JavaScriptu -->
         </div>
         <div id="paginacja-zamowien" class="pagination" style="margin-top: 10px; margin-bottom: 15px;"></div>
         <div class="modal-actions">
@@ -252,9 +248,25 @@
     let trybWyszukiwania = false;
     let timeoutWyszukiwania = null;
     let aktualneProdukty = [];
-    let aktualneZamowienia = []; // Przechowuje listę załadowanych zamówień dla admina
+    let aktualneZamowienia = [];
     let aktualnaRola = 'admin';
     let zalogowanyKlientId = null;
+
+    // Funkcja zwracająca kolor dla danego statusu zamówienia
+    function pobierzKolorStatusu(status) {
+        switch (status) {
+            case 'NEW':
+                return '#007bff'; // Niebieski dla nowych
+            case 'PROCESSING':
+                return '#fd7e14'; // Pomarańczowy dla przetwarzanych
+            case 'COMPLETED':
+                return '#28a745'; // Zielony dla zrealizowanych
+            case 'CANCELLED':
+                return '#dc3545'; // Czerwony dla anulowanych
+            default:
+                return '#6c757d'; // Domyślny szary
+        }
+    }
 
     function zmienUzytkownika(wybranaWartosc) {
         if (wybranaWartosc === 'admin') {
@@ -305,7 +317,7 @@
                         <strong>ID Zamówienia:</strong> ${zamowienie.id} <br>
                         <strong>Produkt:</strong> ${zamowienie.productName || 'Brak nazwy'} <br>
                         <strong>Cena:</strong> ${zamowienie.price || 0} zł <br>
-                        <strong>Status:</strong> <span style="color: #007bff; font-weight: bold;">${zamowienie.status}</span>
+                        <strong>Status:</strong> <span style="color: ${pobierzKolorStatusu(zamowienie.status)}; font-weight: bold;">${zamowienie.status}</span>
                     </div>
                 `;
                 });
@@ -318,7 +330,7 @@
             });
     }
 
-    // Nowa Funkcja dla Admina - Wszystkie zamówienia
+    // Funkcja dla Admina - Wszystkie zamówienia
     function otworzWszystkieZamowienia(strona = 0) {
         document.getElementById('modal-zamowienia').classList.add('active');
         document.getElementById('modal-zamowienia-tytul').textContent = 'Zarządzanie zamówieniami';
@@ -336,7 +348,7 @@
             })
             .then(dane => {
                 let zamowienia = processPaginationData(dane, strona);
-                aktualneZamowienia = zamowienia.dane; // Zapisujemy by pobrać pełen obiekt przy edycji
+                aktualneZamowienia = zamowienia.dane;
 
                 if (!zamowienia.dane || zamowienia.dane.length === 0) {
                     kontener.innerHTML = '<p>Brak zamówień w systemie.</p>';
@@ -347,7 +359,9 @@
                 let html = '';
 
                 zamowienia.dane.forEach(zamowienie => {
-                    let opcjeSelect = statusy.map(s => `<option value="${s}" ${zamowienie.status === s ? 'selected' : ''}>${s}</option>`).join('');
+                    let opcjeSelect = statusy.map(s =>
+                        `<option value="${s}" ${zamowienie.status === s ? 'selected' : ''}>${s}</option>`
+                    ).join('');
 
                     html += `
                     <div style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 6px; background: #fff;">
@@ -360,12 +374,15 @@
 
                         <div style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
                             <label style="font-weight: bold; font-size: 0.9em;">Status:</label>
-                            <select style="padding: 4px; border-radius: 4px;" onchange="aktualizujStatusZamowienia(${zamowienie.id}, this.value, ${zamowienia.currentPage})">
+                            <select
+                                style="padding: 4px; border-radius: 4px; font-weight: bold; color: ${pobierzKolorStatusu(zamowienie.status)};"
+                                onchange="this.style.color = pobierzKolorStatusu(this.value); aktualizujStatusZamowienia(${zamowienie.id}, this.value, ${zamowienia.currentPage})"
+                            >
                                 ${opcjeSelect}
                             </select>
                         </div>
                     </div>
-                `;
+                    `;
                 });
                 kontener.innerHTML = html;
                 renderujPaginacjeZamowien(zamowienia.totalPages, zamowienia.currentPage, true);
@@ -378,7 +395,6 @@
 
     // Wysyła PUT z aktualizacją zamówienia
     function aktualizujStatusZamowienia(orderId, nowyStatus, strona) {
-        // Musimy wysłać cały obiekt, by backend nie nadpisał innych pól nullami[span_6](start_span)[span_6](end_span)
         const zamowienieBaza = aktualneZamowienia.find(z => z.id === orderId);
         if (!zamowienieBaza) return;
 
@@ -388,22 +404,20 @@
         };
 
         fetch(`${API_URL}/order/${orderId}`, {
-            method: 'PUT', // Musisz mieć @PutMapping("/{id}") w kontrolerze
+            method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(zaktualizowaneZamowienie)
         })
             .then(odpowiedz => {
                 if (!odpowiedz.ok) throw new Error('Błąd przy aktualizacji statusu');
-                // Zakończono sukcesem, nie trzeba powiadomienia by nie irytować admina klikającego często
             })
             .catch(err => {
-                alert('Wystąpił błąd podczas aktualizacji: Upewnij się, że poprawiłeś backend na @PutMapping');
+                alert('Wystąpił błąd podczas aktualizacji statusu.');
                 console.error(err);
-                otworzWszystkieZamowienia(strona); // reset widoku w razie błędu
+                otworzWszystkieZamowienia(strona);
             });
     }
 
-    // Pomocnicza funkcja do obsługi różnych typów zwrotek paginacji ze Springa
     function processPaginationData(dane, strona) {
         let totalPages = 1;
         let currentPage = strona;
@@ -730,9 +744,10 @@
             });
     }
 
-
+    // Pierwsze załadowanie listy produktów
     pobierzProdukty(0);
 
+    // Licznik znaków opisu w formularzu dodawania/edycji
     const textareaOpis = document.getElementById('input-opis');
     const licznik = document.getElementById('licznik-opis');
     textareaOpis.addEventListener('input', () => {
