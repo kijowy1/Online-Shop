@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Sklep - Lista Produktów</title>
+    <link rel='icon' href='/WebFirefly-2.png' type='image/x-icon' />
+
+
     <style>
         body { font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9; }
 
@@ -171,12 +174,23 @@
             color: white;
         }
         .btn-delete:hover { background-color: #ff4c4c; }
+        .logo-sklepu {
+            height: 75px;        /* Zwiększona wysokość */
+            width: 75px;         /* Szerokość tworząca kwadrat */
+            vertical-align: middle;
+            object-fit: cover;   /* Przytnie białe, szerokie boki z oryginalnego pliku */
+            margin-right: 15px;  /* Dodaje ładny odstęp od napisu "Moje Produkty" */
+        }
     </style>
 </head>
 <body>
 
 <div class="header-top">
-    <h1>Moje Produkty</h1>
+    <h1>
+        <img src="/Firefly-2.png" alt="Logo sklepu"
+             class="logo-sklepu">
+        Moje Produkty
+    </h1>
     <div class="role-switch">
         <select id="user-selector" onchange="zmienUzytkownika(this.value)" style="padding: 6px; border-radius: 4px; border: 1px solid #ccc; font-weight: bold;">
             <option value="admin">Konto: Administrator</option>
@@ -755,4 +769,4 @@
     });
 </script>
 </body>
-</html>
+</html>3
